@@ -2,44 +2,61 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
+// Creating a server that gets a request and response
 const server = http.createServer((req, res) => {
-    // if(req.url === '/') { // If it's / then we know that's the index page
-    //     fs.readFile(
-    //         path.join(__dirname, 'public', 'index.html'),
-    //         (err, content) => {
-    //             if (err) throw err;
-    //             res.writeHead(200, { 'Content-Type': 'text/html' }); // adding a 200 response, 
-    //             // meaning everything's ok, and setting the content type
-    //             res.end(content); // serving content
-    //         }
-    //     )};
 
-    // if(req.url === '/about') {
-    //     fs.readFile(
-    //         path.join(__dirname, 'public', 'about.html'),
-    //         (err, content) => {
-    //             if (err) throw err;
-    //             res.writeHead(200, { 'Content-Type': 'text/html' });
-    //             res.end(content); // serving content
-    //         }
-    //     )};
-
-    // if(req.url === '/api/users') {
-    //     // hardcoded JSON data
-    //     const users = [
-    //         { name: 'Bob Smith', age: 40 },
-    //         { name: 'John Doe', age: 30 }
-    //     ];
-    //     // response code 200 and set the content type as JSON
-    //     res.writeHead(200, { 'Content-Type': 'application/json' });
-    //     res.end(JSON.stringify(users)); // serve the JSON in a string format
-    // };
-
-    // Build file path
+    // Then look in the public folder and evaluate whatever the req.url is
+    // if it's / we're gonna load index.html, if not we're gonna load whatever the file is called
     let filePath = path.join(__dirname, 'public', req.url === '/' ? 'index.html' : req.url);
 
-    console.log(filePath);
-    res.end();
+    // Then we're gonna get the extension of the file
+    let extname = path.extname(filePath);
+
+        
+    // Then we're gonna evaluate the extension and set the content type based on it
+    // The initial being html
+    let contentType = 'text/html'
+
+    switch(extname) {
+        case '.js':
+            contentType = 'text/javascript';
+            break;
+        case '.css':
+            contentType = 'text/css';
+            break;
+        case '.json':
+            contentType = 'application/json';
+            break;
+        case '.png':
+            contentType = 'image/png';
+            break;
+        case '.jpg':
+            contentType = 'image/jpg';
+            break;
+        };
+
+    // Then we're gonna read the file and if there's an error we'll check for some error codes
+    fs.readFile(filePath, (err, content) => {
+        if(err) {
+            if(err.code == 'ENO ENT') { // this code means page not found
+                // Page not found, load the 404.html page
+                fs.readFile(path.join(__dirname, 'public', '404.html'), (error, content) => {
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(content, 'utf8');
+                })
+            } else {
+                // Some other server error send a 500
+                res.writeHead(500);
+                res.end(`Server Error: ${err.code}`);
+            }
+        } else {
+            // If successful, we'll send a 200 and whatever the content type is
+            res.writeHead(200, { 'Content-Type': contentType });
+            // and send the content of the file
+            res.end(content, 'utf8');
+        }
+    })
+
 
 });
 
